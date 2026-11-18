@@ -1,8 +1,16 @@
 # Stratoscope
 
-A free SEO check for Google and AI search. Built and running on [stratosly.com/scan](https://stratosly.com/scan) (Russian version: [stratosly.com/ru/scan](https://stratosly.com/ru/scan)).
+A free SEO check for Google and AI search. Live since October 2026 on [stratosly.com/scan](https://stratosly.com/scan) (Russian version: [stratosly.com/ru/scan](https://stratosly.com/ru/scan)).
 
 **Source is private. This repository documents the architecture and includes selected code excerpts.**
+
+## Why it exists
+
+Stratoscope is the lead funnel of Stratosly, my studio for websites and SEO. A site owner gets a free report that puts the most serious problems first; the report link arrives by email, and I get a note in Telegram. The check has to be worth running on its own, so every finding can be verified without trusting me.
+
+## My role
+
+I designed and built it alone: the product, the architecture, the code, the report texts in English and Russian, and the launch. I used Claude Code as a coding assistant; I made the decisions and reviewed the work.
 
 ## What it does
 
@@ -10,7 +18,7 @@ A visitor enters a site address. In about 30 to 90 seconds Stratoscope opens the
 
 The report comes in three parts: what to fix first, what passed, and what could not be checked and why. Every finding carries the facts it rests on and a way to see the problem yourself, such as "open view-source: and search for `<a href`", so nothing has to be taken on trust.
 
-The same engine runs as a command line tool for client work, without the web layer.
+The same engine also runs as a command line tool, without the web layer.
 
 ![The report on a made-up site: what to fix first, with one finding open](docs/report-findings.png)
 
@@ -34,7 +42,7 @@ The AI search group answers one question: can AI assistants read the site at all
 
 The check sees the site from outside, without access to the owner's accounts. It says so in every report:
 
-- what AI assistants say about the business and whom they recommend instead;
+- what AI assistants say about the business and whom they recommend instead (planned as a separate paid measurement, not built yet);
 - rankings, search queries and their volume;
 - how many pages Google has indexed and why the rest did not make it (only Search Console knows);
 - pages no link leads to, which needs a crawl of the whole site;
