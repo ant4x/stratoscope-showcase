@@ -6,11 +6,11 @@ A free SEO check for Google and AI search. Live since October 2026 on [stratosly
 
 ## Why it exists
 
-Stratoscope is the lead funnel of Stratosly, my studio for websites and SEO. A site owner gets a free report that puts the most serious problems first; the report link arrives by email, and I get a note in Telegram. The check has to be worth running on its own, so every finding can be verified without trusting me.
+Stratoscope is the lead funnel of Stratosly, my web and SEO studio. A site owner gets a free report that puts the most serious problems first; the report link arrives by email, and I get a note in Telegram. The check has to be worth running on its own, so every finding can be verified without trusting me.
 
 ## My role
 
-I designed and built it alone: the product, the architecture, the code, the report texts in English and Russian, and the launch. I used Claude Code as a coding assistant; I made the decisions and reviewed the work.
+I designed and built it on my own: the product, the architecture, the code, the report texts in English and Russian, and the launch. I used Claude Code as a coding assistant; I made the decisions and reviewed the work.
 
 ## What it does
 
@@ -36,7 +36,7 @@ The same report on a phone: [docs/report-phone.png](docs/report-phone.png).
 | Structured data (4) | JSON-LD validity, Organization, LocalBusiness, WebSite |
 | AI search (5) | Which of 16 AI crawlers robots.txt lets in, whether the home page has text without JavaScript, snippet rules that keep text out of Google snippets and AI Overviews, Copilot rules (noarchive, nocache), llms.txt |
 
-The AI search group answers one question: can AI assistants read the site at all. ChatGPT, Claude and Perplexity crawlers do not run JavaScript, so a site drawn in the browser looks empty to them even when it ranks in Google.
+The AI search group answers one question: can AI assistants read the site at all? ChatGPT, Claude and Perplexity crawlers do not run JavaScript, so a site drawn in the browser looks empty to them even when it ranks in Google.
 
 ## What it does not check, by design
 
@@ -45,7 +45,7 @@ The check sees the site from outside, without access to the owner's accounts. It
 - what AI assistants say about the business and whom they recommend instead (planned as a separate paid measurement, not built yet);
 - rankings, search queries and their volume;
 - how many pages Google has indexed and why the rest did not make it (only Search Console knows);
-- pages no link leads to, which needs a crawl of the whole site;
+- pages that no link leads to (finding them takes a crawl of the whole site);
 - Google Maps and social profiles;
 - protection services that turn AI crawlers away even when robots.txt lets them in;
 - backlinks and spelling.
@@ -59,7 +59,7 @@ flowchart TD
   L -->|scanned this week| W
   L -->|new scan| C
   subgraph Engine [Scan engine, no Next.js dependency]
-    C[collect: four waves through safe-fetch<br/>home page, robots.txt, sitemap and llms.txt, up to 20 pages<br/>50 s for the whole scan, 3 requests at once]
+    C[collect: four waves through safe-fetch<br/>home page, robots.txt, sitemap and llms.txt, up to 20 pages<br/>50 s for all requests to the site, 3 at once]
     G[Google speed data<br/>CrUX and PageSpeed Insights, own 85 s limit]
     K[42 checks: pure functions<br/>over the collected data]
     C --> K
@@ -80,16 +80,16 @@ flowchart TD
 
 - **No language model in the pipeline.** Every verdict is computed by code. A page cannot talk its way into a better report, because nothing reads its text as instructions.
 - **One door to the outside world.** All outgoing requests go through `safe-fetch`, built on `node:https` and `node:net` without packages. Only public addresses and ports 80 and 443. The IP is checked at connect time and again on every redirect, so a DNS answer that changes between the check and the connection does not get through. Sizes and times are capped. A request that carries an API key never follows a redirect to another site.
-- **Hostile pages stay data.** HTML is parsed with parse5, JSON-LD with `JSON.parse`, and script files are searched as text. Nothing from a scanned site is executed or stored. Reading has its own budget: 2 seconds a page, 6 seconds for all pages of one scan.
+- **Hostile pages stay data.** HTML is parsed with parse5, JSON-LD with `JSON.parse`, and script files are searched as text. Nothing from a scanned site is executed, and page bodies are never stored: a report keeps only what its findings quote, such as a page title. Reading has its own budget: 2 seconds a page, 6 seconds for all pages of one scan.
 - **robots.txt by RFC 9309, without regular expressions.** The matcher tracks reachable positions instead of backtracking, so a hostile pattern cannot keep the server busy for minutes.
-- **Little personal data.** A visitor's IP is stored only as an HMAC with a server secret, enough to count scans and useless to anyone who reads the store. A report link holds 192 random bits, and the store keeps only its hash. Texts of scanned pages are never stored.
-- **Abuse limits.** Cloudflare Turnstile, three scans a day per address and per email, one scan of a site a week (a second request shows the same report).
+- **Little personal data.** A visitor's IP is stored only as an HMAC with a server secret, enough to count scans and useless to anyone who reads the store. A report link holds 192 random bits, and the store keeps only its hash.
+- **Abuse limits.** Cloudflare Turnstile, three scans a day per IP address and per email address, one scan of a site a week (a second request shows the same report).
 - **Thin integrations.** Upstash Redis, Resend, Telegram and Turnstile are called over HTTP with `fetch`, without their SDKs. Each takes the `fetch` function as a parameter, so tests pass a fake one.
 
 ## Tests
 
 - 83 unit test files with `node:test`, mostly checks run against saved pages and edge cases: hostile robots.txt patterns, redirects into private networks, pages that answer every address with 200.
-- Playwright end to end tests for the visitor's path from the form to the report.
+- Playwright end-to-end tests for the visitor's path from the form to the report.
 
 ## Stack
 
