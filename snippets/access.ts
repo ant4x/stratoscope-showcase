@@ -1,4 +1,4 @@
-// Excerpt from Stratoscope: src/lib/scan/web/access.ts. Most store keys are omitted. Source is private.
+// Excerpt from Stratoscope: src/lib/scan/web/access.ts. Omitted: most store keys, YEAR, visitorSecret, scanOpen, statsToken and the Turnstile note limit. Source is private.
 import { createHash, createHmac, randomBytes } from 'node:crypto'
 import type { Store } from './store.ts'
 
