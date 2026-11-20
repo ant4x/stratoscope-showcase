@@ -4,13 +4,26 @@ A free check of whether Google and AI assistants can find and read a website. It
 
 **Source is private. This repository documents the architecture and includes selected code excerpts.**
 
+![The report on a made-up site: what to fix first, with one finding open](docs/report-findings.png)
+
+The same report on a phone: [docs/report-phone.png](docs/report-phone.png).
+
 ## Why it exists
 
 Stratoscope is the lead funnel of Stratosly, my web and SEO studio. A site owner gets a free report that puts the most serious problems first. The report opens once they leave an email, the link arrives there, and I get a note in Telegram. The check has to be worth running on its own, so every finding can be verified without trusting me.
 
-## My role
+## How I built it
 
-I designed and built it on my own: the product, the architecture, the code, the report texts in English and Russian, and the launch. I used Claude Code as a coding assistant; I made the decisions and reviewed the work.
+I led the development end to end and used AI coding agents as tools: Claude Code, OpenAI Codex and Google Gemini. The commits went through Claude Code, so they carry its co-author line.
+
+- **Decisions:** the product and its place in my studio's lead funnel, the architecture, what the scan checks and how serious each finding is, every report text in English and Russian, the limits and what is stored, the launch.
+- **Process:** each part planned before code and covered by tests, nothing merged without my approval.
+
+## In numbers
+
+- Scan engine: 143 TypeScript files, about 14,000 lines, with 83 test files of about 7,500 lines.
+- Web layer (the form, the progress screen, the report pages, the API routes): 58 files, about 5,200 lines.
+- About 150 commits over seven weeks from 28 September 2026; live since 12 October.
 
 ## What it does
 
@@ -19,10 +32,6 @@ A visitor enters a site address and, while the scan runs, an email. In up to 90 
 The report comes in four parts: what to fix first, other findings, what passed, and what could not be checked and why. Every finding carries the facts it rests on and a way to see the problem yourself, such as "open view-source: and search for `<a href`", so nothing has to be taken on trust.
 
 The same engine also runs as a command line tool, without the web layer.
-
-![The report on a made-up site: what to fix first, with one finding open](docs/report-findings.png)
-
-The same report on a phone: [docs/report-phone.png](docs/report-phone.png).
 
 ## What it checks
 
@@ -85,14 +94,15 @@ flowchart TD
 - **No language model in the pipeline.** Every verdict is computed by code. A page cannot talk its way into a better report, because nothing reads its text as instructions.
 - **One door to scanned sites.** Every request to a scanned site and to Google's APIs goes through `safe-fetch`, built on `node:https` and `node:net` without packages. Only public addresses and ports 80 and 443. The IP is checked at connect time and again on every redirect, so a DNS answer that changes between the check and the connection does not get through. Sizes and times are capped. A request that carries an API key never follows a redirect to another site.
 - **Hostile pages stay data.** HTML is parsed with parse5, JSON-LD with `JSON.parse`, and script files are searched as text. Nothing from a scanned site is executed, and page bodies are never stored: a report keeps short facts about the home page (its title, description and up to five H1 headings, each cut to 300 characters) and what its findings quote. Reading has its own budget: 2 seconds a page, 6 seconds for all pages of one scan.
-- **robots.txt by RFC 9309, without regular expressions.** The matcher tracks reachable positions instead of backtracking, so a hostile pattern cannot keep the server busy for minutes.
+- **robots.txt by RFC 9309.** The matcher cuts each pattern at `*` and finds the pieces left to right in one pass instead of using a regular expression, so even 500 KiB of stars takes milliseconds per address. A review by a separate AI agent found that the earlier matcher slowed down to seconds per address on such a file; the fix and its test are in the excerpts.
 - **Little personal data.** The email is kept because the report goes to it: for a week, or until the person unsubscribes if they agreed to further letters. A visitor's IP is stored only as an HMAC with a server secret, enough to count scans and useless to anyone who reads the store. A report link holds 192 random bits, and the store keeps only its hash.
 - **Abuse limits.** Cloudflare Turnstile, three scans a day per IP address, three report emails a day per email address, one scan of a site a week (a second request shows the same report).
 - **Thin integrations.** Upstash Redis, Resend, Telegram and Turnstile are called over HTTP with `fetch`, without their SDKs. Each takes the `fetch` function as a parameter, so tests pass a fake one.
 
 ## Tests
 
-- 83 unit test files, 578 tests with `node:test`: every check against HTML built in the tests and fake responses, plus edge cases: hostile robots.txt patterns, redirects into private networks, pages that answer every address with 200.
+- 83 unit test files, 579 tests with `node:test`: every check against HTML built in the tests and fake responses, plus edge cases: hostile robots.txt patterns, redirects into private networks, pages that answer every address with 200.
+- Two of them are next to their excerpts: [snippets/robots.test.ts](snippets/robots.test.ts) (Google's own examples and hostile patterns) and [snippets/ip-policy.test.ts](snippets/ip-policy.test.ts) (private, reserved and disguised addresses).
 - Playwright end-to-end tests for the visitor's path from the form to the report.
 
 ## Stack
@@ -104,14 +114,16 @@ TypeScript, Node.js (`node:https`, `node:net`, `node:dns`, `node:crypto`), Next.
 | File | What it shows |
 |---|---|
 | [snippets/ip-policy.ts](snippets/ip-policy.ts) | Which addresses count as public, with `node:net` BlockList |
+| [snippets/ip-policy.test.ts](snippets/ip-policy.test.ts) | Its tests: public, private, reserved and disguised addresses |
 | [snippets/safe-fetch.ts](snippets/safe-fetch.ts) | The outgoing client: address check at connect time, redirects, limits, retries |
 | [snippets/robots.ts](snippets/robots.ts) | robots.txt parser and matcher by RFC 9309 |
+| [snippets/robots.test.ts](snippets/robots.test.ts) | Its tests: Google's examples, groups, encoding, hostile patterns |
 | [snippets/ai-access.ts](snippets/ai-access.ts) | How robots.txt treats each AI crawler, and the llms.txt fact |
 | [snippets/collect.ts](snippets/collect.ts) | The four collection waves under one deadline and a concurrency limit |
 | [snippets/text-without-js.ts](snippets/text-without-js.ts) | One check end to end: what AI crawlers see without JavaScript |
 | [snippets/access.ts](snippets/access.ts) | Hashed visitor addresses, secret report links, daily limits |
 
-Excerpts are copied from the private source with internal references removed. They import modules that are not included, so they are for reading, not for running.
+Excerpts are copied from the private source with internal references removed. Most import modules that are not included, so they are for reading. The robots.txt and address excerpts are full files, and their tests run as they are, with nothing to install: `node --test "snippets/*.test.ts"` on Node.js 24.
 
 ## Author
 

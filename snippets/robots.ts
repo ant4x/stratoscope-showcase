@@ -78,20 +78,24 @@ function normalize(value: string): string {
 }
 
 /**
- * Google's matcher: `*` is any sequence, a final `$` anchors the end. It tracks the path positions reachable
- * so far instead of using a regex, so a hostile pattern cannot make it backtrack for minutes.
+ * Google's matcher: `*` is any sequence, a final `$` anchors the end. The pattern is cut at each `*`, and each piece
+ * is found after the previous one, earliest first: with `*` as the only wildcard the earliest match is never worse, so
+ * one pass decides. Every piece found moves along the path, so a hostile pattern of many stars stops at the path's end.
  */
 function matches(pattern: string, path: string): boolean {
-  let positions = [0]
-  for (let i = 0; i < pattern.length; i++) {
-    const char = pattern[i]
-    if (char === '$' && i === pattern.length - 1) return positions.at(-1) === path.length
-    if (char === '*') {
-      positions = Array.from({ length: path.length - positions[0] + 1 }, (_, k) => positions[0] + k)
-    } else {
-      positions = positions.filter((position) => path[position] === char).map((position) => position + 1)
-      if (positions.length === 0) return false
-    }
+  const anchored = pattern.endsWith('$')
+  const pieces = (anchored ? pattern.slice(0, -1) : pattern).split('*')
+  const first = pieces[0]
+  if (!path.startsWith(first)) return false
+  if (pieces.length === 1) return !anchored || path.length === first.length
+
+  let position = first.length
+  for (let i = 1; i < pieces.length - 1; i++) {
+    if (!pieces[i]) continue
+    const found = path.indexOf(pieces[i], position)
+    if (found < 0) return false
+    position = found + pieces[i].length
   }
-  return true
+  const last = pieces.at(-1)!
+  return anchored ? path.length - last.length >= position && path.endsWith(last) : path.indexOf(last, position) >= 0
 }
