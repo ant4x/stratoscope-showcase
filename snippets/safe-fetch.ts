@@ -1,4 +1,4 @@
-// Excerpt from Stratoscope: src/lib/scan/net/safe-fetch.ts. Omitted: imports, result types, body reading, the SafeFetchError class and the REQUEST_HEADERS, REDIRECT_STATUSES, RETRY_DELAY_MS and TRANSIENT_ERRORS constants. Source is private.
+// Excerpt from Stratoscope: src/lib/scan/net/safe-fetch.ts. Omitted: imports, the Redirect, SendOptions, SafeResponse and SafeFetchErrorCode types, body reading, the SafeFetchError class and the REQUEST_HEADERS, REDIRECT_STATUSES, RETRY_DELAY_MS and TRANSIENT_ERRORS constants. Source is private.
 
 export type FetchPolicy = {
   isAllowedAddress: (address: string) => boolean

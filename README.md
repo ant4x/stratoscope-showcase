@@ -21,9 +21,9 @@ I led the development end to end and used AI coding agents as tools: Claude Code
 
 ## In numbers
 
-- Scan engine: 143 TypeScript files, about 14,000 lines, with 83 test files of about 7,500 lines.
+- Scan engine with its store, mail and Telegram modules: 143 TypeScript files, about 14,000 lines, with 83 test files of about 7,500 lines.
 - Web layer (the form, the progress screen, the report pages, the API routes): 58 files, about 5,200 lines.
-- About 150 commits over seven weeks from 28 September 2026; live since 12 October.
+- About 220 commits since 28 September 2026; live since 12 October.
 
 ## What it does
 
@@ -93,15 +93,15 @@ flowchart TD
 
 - **No language model in the pipeline.** Every verdict is computed by code. A page cannot talk its way into a better report, because nothing reads its text as instructions.
 - **One door to scanned sites.** Every request to a scanned site and to Google's APIs goes through `safe-fetch`, built on `node:https` and `node:net` without packages. Only public addresses and ports 80 and 443. The IP is checked at connect time and again on every redirect, so a DNS answer that changes between the check and the connection does not get through. Sizes and times are capped. A request that carries an API key never follows a redirect to another site.
-- **Hostile pages stay data.** HTML is parsed with parse5, JSON-LD with `JSON.parse`, and script files are searched as text. Nothing from a scanned site is executed, and page bodies are never stored: a report keeps short facts about the home page (its title, description and up to five H1 headings, each cut to 300 characters) and what its findings quote. Reading has its own budget: 2 seconds a page, 6 seconds for all pages of one scan.
-- **robots.txt by RFC 9309.** The matcher cuts each pattern at `*` and finds the pieces left to right in one pass instead of using a regular expression, so even 500 KiB of stars takes milliseconds per address. A review by a separate AI agent found that the earlier matcher slowed down to seconds per address on such a file; the fix and its test are in the excerpts.
-- **Little personal data.** The email is kept because the report goes to it: for a week, or until the person unsubscribes if they agreed to further letters. A visitor's IP is stored only as an HMAC with a server secret, enough to count scans and useless to anyone who reads the store. A report link holds 192 random bits, and the store keeps only its hash.
+- **Hostile pages stay data.** HTML is parsed with parse5, JSON-LD with `JSON.parse`, and script files are searched as text. Nothing from a scanned site is executed, and page bodies are never stored: a report keeps short facts about the home page and its language versions (title, description, H1 headings, preview title and viewport, each cut to 300 characters, and counts of images and structured data) and what its findings quote. Reading has its own budget: 2 seconds a page, 6 seconds for all pages of one scan.
+- **robots.txt by RFC 9309, at a bounded cost.** Patterns are cut at `*` once, when robots.txt is read, and matched in one pass instead of with a regular expression. Each robots.txt also gets a budget of compared characters, about 2 seconds; past it, the remaining addresses count as closed, so nothing is opened unchecked and a hostile file costs a scan seconds, not minutes. Reviews by separate AI agents found the earlier matcher could be held for minutes; the fix and its tests are in the excerpts.
+- **Little personal data.** The email is kept because the report goes to it: for a week, or until a week after they unsubscribe if they agreed to further letters. A visitor's IP is stored only as an HMAC with a server secret, enough to count scans and useless to anyone who reads the store. A report link holds 192 random bits, and the store keeps only its hash.
 - **Abuse limits.** Cloudflare Turnstile, three scans a day per IP address, three report emails a day per email address, one scan of a site a week (a second request shows the same report).
 - **Thin integrations.** Upstash Redis, Resend, Telegram and Turnstile are called over HTTP with `fetch`, without their SDKs. Each takes the `fetch` function as a parameter, so tests pass a fake one.
 
 ## Tests
 
-- 83 unit test files, 579 tests with `node:test`: every check against HTML built in the tests and fake responses, plus edge cases: hostile robots.txt patterns, redirects into private networks, pages that answer every address with 200.
+- 83 unit test files, 584 tests with `node:test`: every check against HTML built in the tests and fake responses, plus edge cases: hostile robots.txt patterns, redirects into private networks, pages that answer every address with 200.
 - Two of them are next to their excerpts: [snippets/robots.test.ts](snippets/robots.test.ts) (Google's own examples and hostile patterns) and [snippets/ip-policy.test.ts](snippets/ip-policy.test.ts) (private, reserved and disguised addresses).
 - Playwright end-to-end tests for the visitor's path from the form to the report.
 

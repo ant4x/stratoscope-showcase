@@ -123,6 +123,32 @@ test('a pattern of many stars costs no more than reading it, for every link of a
     const parsed = robots(`User-agent: *\nDisallow: /${pattern}x`)
     const start = performance.now()
     for (let link = 0; link < 50; link++) isAllowed(parsed, 'googlebot', `https://example.com/${'a'.repeat(1000)}${link}`)
-    assert.ok(performance.now() - start < 500, `50 links took ${Math.round(performance.now() - start)} ms`)
+    assert.ok(performance.now() - start < 2000, `50 links took ${Math.round(performance.now() - start)} ms`)
   }
+})
+
+test('a robots.txt of 500 KiB is cut into pieces once, not again for every address', () => {
+  // Cutting the pattern on every call cost 7 ms an address: a sitemap of 3,000 addresses kept a scan busy for 20 s.
+  const parsed = robots(`User-agent: *\nDisallow: /\nDisallow: /${'*'.repeat(500 * 1024 - 40)}x`)
+  const start = performance.now()
+  for (let page = 0; page < 3000; page++) isAllowed(parsed, 'googlebot', `https://example.com/page-${page}`)
+  assert.ok(performance.now() - start < 2000, `3,000 addresses took ${Math.round(performance.now() - start)} ms`)
+})
+
+test('a robots.txt too heavy to apply closes the rest of the site instead of holding the scan', () => {
+  // Cost is rules times address length: 40,000 short rules held a scan for 90 s on 500 addresses of 2,000 characters.
+  const parsed = robots(`User-agent: *\n${Array.from({ length: 40_000 }, (_, rule) => `Disallow: /*a${rule}`).join('\n')}`)
+  const start = performance.now()
+  const answers = Array.from({ length: 100 }, (_, page) => isAllowed(parsed, 'googlebot', `https://example.com/${'b'.repeat(2000)}${page}`))
+  assert.ok(performance.now() - start < 10_000, `100 addresses took ${Math.round(performance.now() - start)} ms`)
+  assert.equal(answers.at(-1), false)
+})
+
+test('a robots.txt of real size never runs out of budget', () => {
+  const rules = Array.from({ length: 500 }, (_, rule) => `Disallow: /private-${rule}/`).join('\n')
+  const parsed = robots(`User-agent: *\n${rules}`)
+  for (let page = 0; page < 1000; page++) {
+    assert.equal(isAllowed(parsed, 'googlebot', `https://example.com/catalog/${'item-'.repeat(30)}${page}`), true)
+  }
+  assert.equal(isAllowed(parsed, 'googlebot', 'https://example.com/private-7/page'), false)
 })

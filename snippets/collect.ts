@@ -1,4 +1,4 @@
-// Excerpt from Stratoscope: src/lib/scan/collect.ts. Omitted: imports, types, the helpers that pick pages and probe addresses (sitemapPages, sitemapUrl, htmlPage) and the MAX_SCRIPT_FILES and HOME_FILES constants. Source is private.
+// Excerpt from Stratoscope: src/lib/scan/collect.ts. Omitted: imports, types, the MAX_SCRIPT_FILES and HOME_FILES constants, and the helpers openPages, sitemapPages, htmlPage, scriptFileUrls, probeUrls and sitemapUrl. Source is private.
 
 /** Time limit for all requests of one scan. */
 export const DEADLINE_MS = 50_000
